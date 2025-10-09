@@ -1,6 +1,5 @@
 import os
-from pinecone.grpc import PineconeGRPC as Pinecone
-from pinecone import ServerlessSpec
+from pinecone import Pinecone, ServerlessSpec
 import time
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -362,18 +361,18 @@ class SnapdealRAGChatbot:
         self.knowledge_base = []
         self.last_scrape_time = None
         self.scrape_interval = 1800
-        self.vector_dimension = None  # Will be set after fitting vectorizer
+        self.vector_dimension = None
         
         self.api_client = SnapdealAPIClient()
         self.base_url = "https://www.snapdeal.com"
         
-        # First, fetch data and fit vectorizer to determine actual dimension
+        # Prepare knowledge base and fit vectorizer
         self._prepare_knowledge_base()
         
-        # Then setup Pinecone with correct dimension
+        # Setup Pinecone with correct dimension
         self._setup_pinecone_index()
         
-        # Finally, index the data
+        # Index the data
         self._index_knowledge_base()
     
     def _prepare_knowledge_base(self):
@@ -448,15 +447,18 @@ class SnapdealRAGChatbot:
         print(f"\n✓ Total items collected: {len(self.knowledge_base)}")
         
         # Fit vectorizer to determine actual dimension
-        all_texts = [doc['text'] for doc in self.knowledge_base]
-        self.vectorizer.fit(all_texts)
-        
-        # Get actual vector dimension from fitted vectorizer
-        sample_vec = self.vectorizer.transform([all_texts[0]]).toarray()[0]
-        self.vector_dimension = len(sample_vec)
-        
-        print(f"✓ Vector dimension determined: {self.vector_dimension}")
-        print(f"  Vocabulary size: {len(self.vectorizer.vocabulary_)}")
+        if self.knowledge_base:
+            all_texts = [doc['text'] for doc in self.knowledge_base]
+            self.vectorizer.fit(all_texts)
+            
+            # Get actual vector dimension
+            sample_vec = self.vectorizer.transform([all_texts[0]]).toarray()[0]
+            self.vector_dimension = len(sample_vec)
+            
+            print(f"✓ Vector dimension determined: {self.vector_dimension}")
+            print(f"  Vocabulary size: {len(self.vectorizer.vocabulary_)}")
+        else:
+            raise ValueError("No data in knowledge base to determine vector dimension")
         
         self.last_scrape_time = datetime.now()
     
@@ -473,7 +475,7 @@ class SnapdealRAGChatbot:
             print(f"Creating new index: {self.index_name} (dimension: {self.vector_dimension})")
             self.pc.create_index(
                 name=self.index_name,
-                dimension=self.vector_dimension,  # Use actual dimension from vectorizer
+                dimension=self.vector_dimension,
                 metric='cosine',
                 spec=ServerlessSpec(
                     cloud='aws',
@@ -578,6 +580,67 @@ class SnapdealRAGChatbot:
                 'source': 'fallback',
                 'timestamp': datetime.now().isoformat()
             },
+            {
+                'id': 'fb_mobile_5',
+                'text': 'OnePlus Nord CE 3 Lite 5G - Price: ₹17,499 (MRP: ₹22,999) 24% off. 8GB RAM, 128GB storage, 108MP camera. Rating: 4.4/5',
+                'category': 'smartphones',
+                'product_name': 'OnePlus Nord CE 3 Lite 5G',
+                'price': '₹17,499',
+                'discount': '24% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_mobile_6',
+                'text': 'iQOO Z9 5G - Price: ₹18,999 (MRP: ₹23,999) 21% off. 8GB RAM, 256GB storage, 50MP Sony IMX camera. Rating: 4.3/5',
+                'category': 'smartphones',
+                'product_name': 'iQOO Z9 5G',
+                'price': '₹18,999',
+                'discount': '21% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_mobile_7',
+                'text': 'Motorola G54 5G - Price: ₹13,999 (MRP: ₹18,999) 26% off. 12GB RAM, 256GB storage, 50MP OIS camera. Rating: 4.2/5',
+                'category': 'smartphones',
+                'product_name': 'Motorola G54 5G',
+                'price': '₹13,999',
+                'discount': '26% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_mobile_8',
+                'text': 'Poco X6 5G - Price: ₹19,999 (MRP: ₹26,999) 26% off. 8GB RAM, 256GB storage, 64MP camera, 120Hz display. Rating: 4.5/5',
+                'category': 'smartphones',
+                'product_name': 'Poco X6 5G',
+                'price': '₹19,999',
+                'discount': '26% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_mobile_9',
+                'text': 'Vivo T2x 5G - Price: ₹12,499 (MRP: ₹16,999) 26% off. 6GB RAM, 128GB storage, 50MP camera. Rating: 4.0/5',
+                'category': 'smartphones',
+                'product_name': 'Vivo T2x 5G',
+                'price': '₹12,499',
+                'discount': '26% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_mobile_10',
+                'text': 'Oppo A78 5G - Price: ₹16,999 (MRP: ₹21,999) 23% off. 8GB RAM, 128GB storage, 50MP camera. Rating: 4.1/5',
+                'category': 'smartphones',
+                'product_name': 'Oppo A78 5G',
+                'price': '₹16,999',
+                'discount': '23% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
             # Laptops
             {
                 'id': 'fb_laptop_1',
@@ -619,6 +682,67 @@ class SnapdealRAGChatbot:
                 'source': 'fallback',
                 'timestamp': datetime.now().isoformat()
             },
+            {
+                'id': 'fb_laptop_5',
+                'text': 'Acer Aspire 3 - Price: ₹31,499 (MRP: ₹44,990) 30% off. AMD Ryzen 3, 8GB RAM, 512GB SSD, Windows 11. Rating: 4.1/5',
+                'category': 'laptops',
+                'product_name': 'Acer Aspire 3',
+                'price': '₹31,499',
+                'discount': '30% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_laptop_6',
+                'text': 'HP Pavilion 15 - Price: ₹52,990 (MRP: ₹68,000) 22% off. Intel Core i5, 16GB RAM, 512GB SSD, Windows 11. Rating: 4.4/5',
+                'category': 'laptops',
+                'product_name': 'HP Pavilion 15',
+                'price': '₹52,990',
+                'discount': '22% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_laptop_7',
+                'text': 'ASUS TUF Gaming F15 - Price: ₹67,990 (MRP: ₹89,990) 24% off. Intel i5, RTX 3050 GPU, 16GB RAM, 512GB SSD. Rating: 4.5/5',
+                'category': 'laptops',
+                'product_name': 'ASUS TUF Gaming F15',
+                'price': '₹67,990',
+                'discount': '24% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_laptop_8',
+                'text': 'MSI GF63 Thin - Price: ₹54,990 (MRP: ₹72,990) 25% off. Intel Core i5, GTX 1650, 8GB RAM, 512GB SSD. Rating: 4.3/5',
+                'category': 'laptops',
+                'product_name': 'MSI GF63 Thin',
+                'price': '₹54,990',
+                'discount': '25% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_laptop_9',
+                'text': 'Lenovo Yoga Slim 7 - Price: ₹59,990 (MRP: ₹79,990) 25% off. AMD Ryzen 5, 16GB RAM, 512GB SSD, 14" FHD. Rating: 4.5/5',
+                'category': 'laptops',
+                'product_name': 'Lenovo Yoga Slim 7',
+                'price': '₹59,990',
+                'discount': '25% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_laptop_10',
+                'text': 'Apple MacBook Air M1 - Price: ₹74,990 (MRP: ₹92,900) 19% off. Apple M1 chip, 8GB RAM, 256GB SSD, 13.3" Retina. Rating: 4.8/5',
+                'category': 'laptops',
+                'product_name': 'Apple MacBook Air M1',
+                'price': '₹74,990',
+                'discount': '19% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
             # Headphones
             {
                 'id': 'fb_headphone_1',
@@ -640,6 +764,644 @@ class SnapdealRAGChatbot:
                 'source': 'fallback',
                 'timestamp': datetime.now().isoformat()
             },
+            {
+                'id': 'fb_headphone_3',
+                'text': 'JBL Tune 510BT - Price: ₹2,999 (MRP: ₹4,999) 40% off. Wireless Bluetooth headphones, 40hr battery, deep bass. Rating: 4.3/5',
+                'category': 'headphones',
+                'product_name': 'JBL Tune 510BT',
+                'price': '₹2,999',
+                'discount': '40% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_headphone_4',
+                'text': 'Sony WH-CH520 - Price: ₹4,490 (MRP: ₹6,990) 36% off. On-ear wireless headphones, 50hr battery, mic support. Rating: 4.5/5',
+                'category': 'headphones',
+                'product_name': 'Sony WH-CH520',
+                'price': '₹4,490',
+                'discount': '36% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_headphone_5',
+                'text': 'OnePlus Buds Z2 - Price: ₹3,499 (MRP: ₹4,999) 30% off. TWS earbuds, ANC, 38hr battery, fast charging. Rating: 4.3/5',
+                'category': 'headphones',
+                'product_name': 'OnePlus Buds Z2',
+                'price': '₹3,499',
+                'discount': '30% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_headphone_6',
+                'text': 'Realme Buds Air 3 - Price: ₹2,799 (MRP: ₹4,999) 44% off. TWS earbuds, ANC, 30hr playtime, low latency. Rating: 4.2/5',
+                'category': 'headphones',
+                'product_name': 'Realme Buds Air 3',
+                'price': '₹2,799',
+                'discount': '44% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Smartwatches
+            {
+                'id': 'fb_watch_1',
+                'text': 'Noise ColorFit Icon 2 - Price: ₹1,799 (MRP: ₹4,999) 64% off. 1.8" AMOLED display, BT calling, 10-day battery. Rating: 4.1/5',
+                'category': 'smartwatch',
+                'product_name': 'Noise ColorFit Icon 2',
+                'price': '₹1,799',
+                'discount': '64% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_watch_2',
+                'text': 'Fire-Boltt Ninja Call Pro Plus - Price: ₹1,499 (MRP: ₹6,999) 79% off. 1.83" HD display, Bluetooth calling, heart rate. Rating: 4.2/5',
+                'category': 'smartwatch',
+                'product_name': 'Fire-Boltt Ninja Call Pro Plus',
+                'price': '₹1,499',
+                'discount': '79% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_watch_3',
+                'text': 'boAt Wave Call - Price: ₹1,999 (MRP: ₹5,990) 67% off. 1.83" display, BT calling, 7-day battery, IP68. Rating: 4.0/5',
+                'category': 'smartwatch',
+                'product_name': 'boAt Wave Call',
+                'price': '₹1,999',
+                'discount': '67% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_watch_4',
+                'text': 'Amazfit Bip 3 Pro - Price: ₹3,499 (MRP: ₹5,999) 42% off. 1.69" display, GPS, 14-day battery, 60+ sports modes. Rating: 4.3/5',
+                'category': 'smartwatch',
+                'product_name': 'Amazfit Bip 3 Pro',
+                'price': '₹3,499',
+                'discount': '42% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_watch_5',
+                'text': 'Titan Smart Pro - Price: ₹5,495 (MRP: ₹7,995) 31% off. 1.96" AMOLED, BT calling, premium design. Rating: 4.4/5',
+                'category': 'smartwatch',
+                'product_name': 'Titan Smart Pro',
+                'price': '₹5,495',
+                'discount': '31% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Televisions
+            {
+                'id': 'fb_tv_1',
+                'text': 'Mi 43-inch Smart TV 5A - Price: ₹23,999 (MRP: ₹31,999) 25% off. Full HD LED, Android TV, Dolby Audio. Rating: 4.3/5',
+                'category': 'television',
+                'product_name': 'Mi Smart TV 5A 43-inch',
+                'price': '₹23,999',
+                'discount': '25% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_tv_2',
+                'text': 'Samsung Crystal 4K UHD 43-inch - Price: ₹28,990 (MRP: ₹38,990) 26% off. 4K Ultra HD, HDR10+, Alexa built-in. Rating: 4.4/5',
+                'category': 'television',
+                'product_name': 'Samsung Crystal 4K UHD 43-inch',
+                'price': '₹28,990',
+                'discount': '26% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_tv_3',
+                'text': 'LG 32-inch HD Ready LED TV - Price: ₹14,990 (MRP: ₹19,990) 25% off. HD Ready, 60Hz, virtual surround sound. Rating: 4.2/5',
+                'category': 'television',
+                'product_name': 'LG 32-inch HD Ready LED TV',
+                'price': '₹14,990',
+                'discount': '25% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_tv_4',
+                'text': 'Sony Bravia 55-inch 4K UHD - Price: ₹54,990 (MRP: ₹74,990) 27% off. 4K HDR, Android TV, Google Assistant. Rating: 4.6/5',
+                'category': 'television',
+                'product_name': 'Sony Bravia 55-inch 4K UHD',
+                'price': '₹54,990',
+                'discount': '27% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_tv_5',
+                'text': 'OnePlus Y1S Pro 50-inch 4K - Price: ₹31,999 (MRP: ₹42,999) 26% off. 4K UHD, Android TV 11, Dolby Audio. Rating: 4.3/5',
+                'category': 'television',
+                'product_name': 'OnePlus Y1S Pro 50-inch',
+                'price': '₹31,999',
+                'discount': '26% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Home Appliances
+            {
+                'id': 'fb_home_1',
+                'text': 'LG 7kg Washing Machine - Price: ₹18,490 (MRP: ₹24,990) 26% off. Front load, inverter motor, energy efficient. Rating: 4.4/5',
+                'category': 'home_appliances',
+                'product_name': 'LG 7kg Washing Machine',
+                'price': '₹18,490',
+                'discount': '26% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_home_2',
+                'text': 'Samsung 253L Refrigerator - Price: ₹23,990 (MRP: ₹29,990) 20% off. Digital inverter, 3-star rating, double door. Rating: 4.5/5',
+                'category': 'home_appliances',
+                'product_name': 'Samsung 253L Refrigerator',
+                'price': '₹23,990',
+                'discount': '20% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_home_3',
+                'text': 'Whirlpool 1.5 Ton AC - Price: ₹29,990 (MRP: ₹42,990) 30% off. 3-star, split AC, copper condenser, 6th sense. Rating: 4.3/5',
+                'category': 'home_appliances',
+                'product_name': 'Whirlpool 1.5 Ton AC',
+                'price': '₹29,990',
+                'discount': '30% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_home_4',
+                'text': 'IFB 25L Convection Microwave - Price: ₹12,990 (MRP: ₹17,990) 28% off. 25L capacity, auto cook menu, child lock. Rating: 4.4/5',
+                'category': 'home_appliances',
+                'product_name': 'IFB 25L Convection Microwave',
+                'price': '₹12,990',
+                'discount': '28% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_home_5',
+                'text': 'Philips Air Fryer - Price: ₹7,999 (MRP: ₹12,995) 38% off. 4.1L capacity, rapid air technology, timer. Rating: 4.5/5',
+                'category': 'home_appliances',
+                'product_name': 'Philips Air Fryer',
+                'price': '₹7,999',
+                'discount': '38% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Shoes
+            {
+                'id': 'fb_shoes_1',
+                'text': 'Nike Revolution 6 - Price: ₹3,295 (MRP: ₹4,995) 34% off. Running shoes, lightweight, breathable mesh. Rating: 4.3/5',
+                'category': 'shoes',
+                'product_name': 'Nike Revolution 6',
+                'price': '₹3,295',
+                'discount': '34% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_shoes_2',
+                'text': 'Adidas Ultraboost 22 - Price: ₹8,999 (MRP: ₹16,999) 47% off. Premium running shoes, boost cushioning. Rating: 4.6/5',
+                'category': 'shoes',
+                'product_name': 'Adidas Ultraboost 22',
+                'price': '₹8,999',
+                'discount': '47% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_shoes_3',
+                'text': 'Puma Softride Enzo - Price: ₹2,799 (MRP: ₹5,999) 53% off. Sports shoes, SoftFoam+ insole, casual wear. Rating: 4.2/5',
+                'category': 'shoes',
+                'product_name': 'Puma Softride Enzo',
+                'price': '₹2,799',
+                'discount': '53% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_shoes_4',
+                'text': 'Reebok Energen Plus - Price: ₹2,199 (MRP: ₹4,999) 56% off. Running shoes, FuelFoam midsole, durable. Rating: 4.1/5',
+                'category': 'shoes',
+                'product_name': 'Reebok Energen Plus',
+                'price': '₹2,199',
+                'discount': '56% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_shoes_5',
+                'text': 'Campus North Plus - Price: ₹999 (MRP: ₹1,999) 50% off. Casual shoes, memory foam, all-day comfort. Rating: 4.0/5',
+                'category': 'shoes',
+                'product_name': 'Campus North Plus',
+                'price': '₹999',
+                'discount': '50% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Fashion - Men
+            {
+                'id': 'fb_fashion_men_1',
+                'text': 'Levi\'s Men Slim Fit Jeans - Price: ₹1,799 (MRP: ₹2,999) 40% off. Blue denim, stretch fabric, mid-rise. Rating: 4.4/5',
+                'category': 'mens_fashion',
+                'product_name': 'Levi\'s Men Slim Fit Jeans',
+                'price': '₹1,799',
+                'discount': '40% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_fashion_men_2',
+                'text': 'Allen Solly Men Formal Shirt - Price: ₹899 (MRP: ₹1,999) 55% off. Cotton blend, regular fit, blue checks. Rating: 4.2/5',
+                'category': 'mens_fashion',
+                'product_name': 'Allen Solly Men Formal Shirt',
+                'price': '₹899',
+                'discount': '55% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_fashion_men_3',
+                'text': 'Peter England Blazer - Price: ₹2,499 (MRP: ₹4,999) 50% off. Formal blazer, slim fit, navy blue. Rating: 4.3/5',
+                'category': 'mens_fashion',
+                'product_name': 'Peter England Blazer',
+                'price': '₹2,499',
+                'discount': '50% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_fashion_men_4',
+                'text': 'US Polo T-Shirt - Price: ₹699 (MRP: ₹1,599) 56% off. Cotton polo t-shirt, casual wear, multiple colors. Rating: 4.1/5',
+                'category': 'mens_fashion',
+                'product_name': 'US Polo T-Shirt',
+                'price': '₹699',
+                'discount': '56% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_fashion_men_5',
+                'text': 'Raymond Men Trousers - Price: ₹1,299 (MRP: ₹2,999) 57% off. Formal trousers, flat front, wrinkle-free. Rating: 4.4/5',
+                'category': 'mens_fashion',
+                'product_name': 'Raymond Men Trousers',
+                'price': '₹1,299',
+                'discount': '57% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Fashion - Women
+            {
+                'id': 'fb_fashion_women_1',
+                'text': 'W Women Kurta Set - Price: ₹899 (MRP: ₹2,499) 64% off. Cotton kurta with palazzo, floral print, casual. Rating: 4.3/5',
+                'category': 'womens_fashion',
+                'product_name': 'W Women Kurta Set',
+                'price': '₹899',
+                'discount': '64% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_fashion_women_2',
+                'text': 'Libas Ethnic Dress - Price: ₹1,199 (MRP: ₹3,999) 70% off. Anarkali dress, embroidered, party wear. Rating: 4.5/5',
+                'category': 'womens_fashion',
+                'product_name': 'Libas Ethnic Dress',
+                'price': '₹1,199',
+                'discount': '70% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_fashion_women_3',
+                'text': 'Biba Women Salwar Suit - Price: ₹1,799 (MRP: ₹4,999) 64% off. Cotton salwar suit, printed, dupatta included. Rating: 4.4/5',
+                'category': 'womens_fashion',
+                'product_name': 'Biba Women Salwar Suit',
+                'price': '₹1,799',
+                'discount': '64% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_fashion_women_4',
+                'text': 'Tokyo Talkies Western Dress - Price: ₹699 (MRP: ₹1,999) 65% off. Midi dress, fit and flare, casual. Rating: 4.2/5',
+                'category': 'womens_fashion',
+                'product_name': 'Tokyo Talkies Western Dress',
+                'price': '₹699',
+                'discount': '65% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_fashion_women_5',
+                'text': 'Zara Women Jeans - Price: ₹1,499 (MRP: ₹2,999) 50% off. High-waist jeans, skinny fit, dark blue. Rating: 4.3/5',
+                'category': 'womens_fashion',
+                'product_name': 'Zara Women Jeans',
+                'price': '₹1,499',
+                'discount': '50% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Tablets
+            {
+                'id': 'fb_tablet_1',
+                'text': 'Samsung Galaxy Tab A8 - Price: ₹14,999 (MRP: ₹19,999) 25% off. 10.5" display, 4GB RAM, 64GB storage. Rating: 4.3/5',
+                'category': 'tablet',
+                'product_name': 'Samsung Galaxy Tab A8',
+                'price': '₹14,999',
+                'discount': '25% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_tablet_2',
+                'text': 'Lenovo Tab M10 Plus - Price: ₹12,999 (MRP: ₹16,999) 24% off. 10.6" FHD, 4GB RAM, quad speakers. Rating: 4.2/5',
+                'category': 'tablet',
+                'product_name': 'Lenovo Tab M10 Plus',
+                'price': '₹12,999',
+                'discount': '24% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_tablet_3',
+                'text': 'Apple iPad 9th Gen - Price: ₹29,990 (MRP: ₹32,900) 9% off. 10.2" Retina display, A13 chip, iPadOS. Rating: 4.7/5',
+                'category': 'tablet',
+                'product_name': 'Apple iPad 9th Gen',
+                'price': '₹29,990',
+                'discount': '9% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Cameras
+            {
+                'id': 'fb_camera_1',
+                'text': 'Canon EOS 1500D DSLR - Price: ₹31,990 (MRP: ₹41,995) 24% off. 24.1MP, WiFi, 18-55mm lens. Rating: 4.5/5',
+                'category': 'camera',
+                'product_name': 'Canon EOS 1500D DSLR',
+                'price': '₹31,990',
+                'discount': '24% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_camera_2',
+                'text': 'Nikon D3500 DSLR - Price: ₹33,950 (MRP: ₹45,950) 26% off. 24.2MP, guide mode, 18-55mm lens. Rating: 4.6/5',
+                'category': 'camera',
+                'product_name': 'Nikon D3500 DSLR',
+                'price': '₹33,950',
+                'discount': '26% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_camera_3',
+                'text': 'GoPro Hero 11 Black - Price: ₹39,990 (MRP: ₹54,990) 27% off. Action camera, 5.3K video, waterproof. Rating: 4.7/5',
+                'category': 'camera',
+                'product_name': 'GoPro Hero 11 Black',
+                'price': '₹39,990',
+                'discount': '27% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Kitchen Appliances
+            {
+                'id': 'fb_kitchen_1',
+                'text': 'Prestige Induction Cooktop - Price: ₹1,999 (MRP: ₹3,995) 50% off. 1200W, preset menu, auto shut-off. Rating: 4.3/5',
+                'category': 'kitchen',
+                'product_name': 'Prestige Induction Cooktop',
+                'price': '₹1,999',
+                'discount': '50% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_kitchen_2',
+                'text': 'Philips Mixer Grinder - Price: ₹3,499 (MRP: ₹6,995) 50% off. 750W, 3 jars, turbo function. Rating: 4.4/5',
+                'category': 'kitchen',
+                'product_name': 'Philips Mixer Grinder',
+                'price': '₹3,499',
+                'discount': '50% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_kitchen_3',
+                'text': 'Kent RO Water Purifier - Price: ₹12,999 (MRP: ₹18,000) 28% off. 8L storage, RO+UV+UF, TDS controller. Rating: 4.5/5',
+                'category': 'kitchen',
+                'product_name': 'Kent RO Water Purifier',
+                'price': '₹12,999',
+                'discount': '28% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_kitchen_4',
+                'text': 'Wonderchef Electric Kettle - Price: ₹899 (MRP: ₹1,995) 55% off. 1.7L, stainless steel, auto shut-off. Rating: 4.2/5',
+                'category': 'kitchen',
+                'product_name': 'Wonderchef Electric Kettle',
+                'price': '₹899',
+                'discount': '55% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Toys & Games
+            {
+                'id': 'fb_toys_1',
+                'text': 'Hot Wheels Track Set - Price: ₹1,299 (MRP: ₹2,499) 48% off. Racing track, 2 cars included, stunts. Rating: 4.4/5',
+                'category': 'toys',
+                'product_name': 'Hot Wheels Track Set',
+                'price': '₹1,299',
+                'discount': '48% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_toys_2',
+                'text': 'Lego City Police Station - Price: ₹3,999 (MRP: ₹5,999) 33% off. 743 pieces, 6+ years, minifigures. Rating: 4.6/5',
+                'category': 'toys',
+                'product_name': 'Lego City Police Station',
+                'price': '₹3,999',
+                'discount': '33% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_toys_3',
+                'text': 'Monopoly Board Game - Price: ₹799 (MRP: ₹1,299) 38% off. Classic edition, family game, 8+ years. Rating: 4.5/5',
+                'category': 'toys',
+                'product_name': 'Monopoly Board Game',
+                'price': '₹799',
+                'discount': '38% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Books
+            {
+                'id': 'fb_books_1',
+                'text': 'Atomic Habits by James Clear - Price: ₹399 (MRP: ₹599) 33% off. Self-help, bestseller, paperback. Rating: 4.8/5',
+                'category': 'books',
+                'product_name': 'Atomic Habits',
+                'price': '₹399',
+                'discount': '33% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_books_2',
+                'text': 'The Psychology of Money - Price: ₹299 (MRP: ₹450) 34% off. Finance, Morgan Housel, bestseller. Rating: 4.7/5',
+                'category': 'books',
+                'product_name': 'The Psychology of Money',
+                'price': '₹299',
+                'discount': '34% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_books_3',
+                'text': 'Think Like a Monk - Price: ₹349 (MRP: ₹499) 30% off. Self-help, Jay Shetty, inspirational. Rating: 4.6/5',
+                'category': 'books',
+                'product_name': 'Think Like a Monk',
+                'price': '₹349',
+                'discount': '30% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Sports & Fitness
+            {
+                'id': 'fb_sports_1',
+                'text': 'Nivia Storm Football - Price: ₹599 (MRP: ₹999) 40% off. Size 5, rubber moulded, training ball. Rating: 4.2/5',
+                'category': 'sports',
+                'product_name': 'Nivia Storm Football',
+                'price': '₹599',
+                'discount': '40% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_sports_2',
+                'text': 'Cosco Yoga Mat - Price: ₹499 (MRP: ₹999) 50% off. 6mm thick, anti-slip, with carry bag. Rating: 4.3/5',
+                'category': 'sports',
+                'product_name': 'Cosco Yoga Mat',
+                'price': '₹499',
+                'discount': '50% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_sports_3',
+                'text': 'Strauss Adjustable Dumbbells - Price: ₹1,299 (MRP: ₹2,499) 48% off. 10kg pair, chrome finish, home gym. Rating: 4.4/5',
+                'category': 'sports',
+                'product_name': 'Strauss Adjustable Dumbbells',
+                'price': '₹1,299',
+                'discount': '48% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_sports_4',
+                'text': 'Yonex Badminton Racket - Price: ₹899 (MRP: ₹1,799) 50% off. Graphite frame, lightweight, with cover. Rating: 4.5/5',
+                'category': 'sports',
+                'product_name': 'Yonex Badminton Racket',
+                'price': '₹899',
+                'discount': '50% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Beauty & Personal Care
+            {
+                'id': 'fb_beauty_1',
+                'text': 'Lakme Eyeconic Kajal - Price: ₹149 (MRP: ₹225) 34% off. Smudge-proof, long-lasting, deep black. Rating: 4.4/5',
+                'category': 'beauty',
+                'product_name': 'Lakme Eyeconic Kajal',
+                'price': '₹149',
+                'discount': '34% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_beauty_2',
+                'text': 'Maybelline Fit Me Foundation - Price: ₹399 (MRP: ₹599) 33% off. Natural finish, SPF 18, multiple shades. Rating: 4.5/5',
+                'category': 'beauty',
+                'product_name': 'Maybelline Fit Me Foundation',
+                'price': '₹399',
+                'discount': '33% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_beauty_3',
+                'text': 'Philips Trimmer BT3221 - Price: ₹1,399 (MRP: ₹2,495) 44% off. Cordless, 20 length settings, 60min runtime. Rating: 4.3/5',
+                'category': 'beauty',
+                'product_name': 'Philips Trimmer BT3221',
+                'price': '₹1,399',
+                'discount': '44% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_beauty_4',
+                'text': 'Dove Hair Fall Rescue Shampoo - Price: ₹299 (MRP: ₹425) 30% off. 650ml, reduces hair fall, nutrilock. Rating: 4.4/5',
+                'category': 'beauty',
+                'product_name': 'Dove Hair Fall Rescue Shampoo',
+                'price': '₹299',
+                'discount': '30% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            
+            # Bags & Luggage
+            {
+                'id': 'fb_bags_1',
+                'text': 'Skybags Backpack 30L - Price: ₹999 (MRP: ₹2,299) 57% off. Laptop compartment, water-resistant, multiple pockets. Rating: 4.3/5',
+                'category': 'bags',
+                'product_name': 'Skybags Backpack 30L',
+                'price': '₹999',
+                'discount': '57% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_bags_2',
+                'text': 'American Tourister Trolley Bag - Price: ₹3,499 (MRP: ₹6,800) 49% off. 55cm cabin size, 4 wheels, hard case. Rating: 4.5/5',
+                'category': 'bags',
+                'product_name': 'American Tourister Trolley',
+                'price': '₹3,499',
+                'discount': '49% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
+            {
+                'id': 'fb_bags_3',
+                'text': 'Wildcraft Duffle Bag 55L - Price: ₹1,799 (MRP: ₹3,495) 49% off. Travel bag, water-resistant, adjustable strap. Rating: 4.4/5',
+                'category': 'bags',
+                'product_name': 'Wildcraft Duffle Bag',
+                'price': '₹1,799',
+                'discount': '49% off',
+                'source': 'fallback',
+                'timestamp': datetime.now().isoformat()
+            },
         ]
     
     def _index_knowledge_base(self):
@@ -653,11 +1415,12 @@ class SnapdealRAGChatbot:
         for i, doc in enumerate(self.knowledge_base):
             embedding = embeddings[i]
             
+            # Handle zero vectors
             if np.sum(np.abs(embedding)) < 1e-10:
                 embedding = np.random.randn(self.vector_dimension) * 0.01
             
             metadata = {
-                'text': doc['text'],
+                'text': doc['text'][:1000],  # Limit text length
                 'category': doc['category'],
                 'source': doc.get('source', 'unknown'),
                 'timestamp': doc.get('timestamp', datetime.now().isoformat())
@@ -666,11 +1429,11 @@ class SnapdealRAGChatbot:
             if 'product_name' in doc:
                 metadata['product_name'] = doc['product_name'][:500]
             if 'price' in doc:
-                metadata['price'] = doc['price']
+                metadata['price'] = str(doc['price'])[:100]
             if 'discount' in doc:
-                metadata['discount'] = doc['discount']
+                metadata['discount'] = str(doc['discount'])[:100]
             if 'product_url' in doc:
-                metadata['product_url'] = doc['product_url']
+                metadata['product_url'] = doc['product_url'][:500]
             
             vectors.append({
                 'id': doc['id'],
@@ -678,6 +1441,7 @@ class SnapdealRAGChatbot:
                 'metadata': metadata
             })
         
+        # Batch upsert
         batch_size = 100
         for i in range(0, len(vectors), batch_size):
             batch = vectors[i:i + batch_size]
@@ -694,7 +1458,7 @@ class SnapdealRAGChatbot:
         """Retrieve relevant information with optional price filtering"""
         query_vec = self.vectorizer.transform([query]).toarray()[0]
         
-        # Always try keyword search first for better results
+        # Try keyword search first
         keyword_results = self._keyword_search(query, top_k, max_price)
         
         if np.sum(np.abs(query_vec)) < 1e-10:
@@ -714,7 +1478,7 @@ class SnapdealRAGChatbot:
                 print("  [Debug] No Pinecone matches, using keyword search")
                 return keyword_results
             
-            # Convert Pinecone format to consistent format with 'score' key
+            # Format matches
             formatted_matches = []
             for match in matches:
                 formatted_matches.append({
@@ -740,7 +1504,7 @@ class SnapdealRAGChatbot:
                 if filtered_matches:
                     return filtered_matches[:top_k]
             
-            # If Pinecone results have low scores, prefer keyword search
+            # Prefer keyword search if Pinecone scores are low
             if formatted_matches and formatted_matches[0]['score'] < 0.3:
                 if keyword_results and keyword_results[0]['score'] > 0:
                     print("  [Debug] Keyword search has better results")
@@ -753,11 +1517,9 @@ class SnapdealRAGChatbot:
             return keyword_results
     
     def _keyword_search(self, query: str, top_k: int = 5, max_price: Optional[int] = None):
-        """Keyword-based fallback search with fuzzy matching"""
+        """Keyword-based fallback search"""
         query_lower = query.lower()
         query_words = set(query_lower.split())
-        
-        print(f"  [Debug] Keyword search: '{query}' -> words: {query_words}")
         
         scores = []
         for doc in self.knowledge_base:
@@ -776,7 +1538,7 @@ class SnapdealRAGChatbot:
             text_lower = doc['text'].lower()
             text_words = set(text_lower.split())
             
-            # Calculate overlap score
+            # Calculate overlap
             overlap = len(query_words.intersection(text_words))
             
             # Boost for category match
@@ -790,29 +1552,9 @@ class SnapdealRAGChatbot:
             if 'product_name' in doc:
                 product_name_lower = doc['product_name'].lower()
                 for word in query_words:
-                    if len(word) > 2:  # Skip very short words
+                    if len(word) > 2:
                         if word in product_name_lower:
                             overlap += 4
-                        # Partial match
-                        elif any(word in pword or pword in word for pword in product_name_lower.split()):
-                            overlap += 2
-            
-            # Fuzzy match for common typos
-            if 'smasung' in query_lower or 'samung' in query_lower:
-                if 'samsung' in text_lower:
-                    overlap += 5
-            
-            # Check for phone/smartphone synonyms
-            phone_keywords = {'phone', 'smartphone', 'mobile'}
-            if phone_keywords.intersection(query_words):
-                if phone_keywords.intersection(text_words) or 'smartphone' in category:
-                    overlap += 2
-            
-            # Check for laptop keywords
-            laptop_keywords = {'laptop', 'notebook', 'computer'}
-            if laptop_keywords.intersection(query_words):
-                if laptop_keywords.intersection(text_words) or 'laptop' in category:
-                    overlap += 2
             
             if overlap > 0:
                 score_val = overlap / max(len(query_words), 1)
@@ -823,14 +1565,7 @@ class SnapdealRAGChatbot:
                 })
         
         scores.sort(key=lambda x: x['score'], reverse=True)
-        
-        result = scores[:top_k]
-        if result:
-            print(f"  [Debug] Keyword search found {len(result)} results, top score: {result[0]['score']:.2f}")
-        else:
-            print(f"  [Debug] Keyword search found 0 results from {len(self.knowledge_base)} docs")
-        
-        return result
+        return scores[:top_k]
     
     def generate_response(self, query: str, retrieved_docs: list) -> str:
         """Generate response"""
@@ -840,12 +1575,8 @@ class SnapdealRAGChatbot:
                    "• 'best laptops for students'\n"
                    "• 'delivery policy'\n")
         
-        # Check if we have valid results
-        has_valid_results = False
-        for doc in retrieved_docs:
-            if doc.get('score', 0) > 0.01:
-                has_valid_results = True
-                break
+        # Check for valid results
+        has_valid_results = any(doc.get('score', 0) > 0.01 for doc in retrieved_docs)
         
         if not has_valid_results:
             return ("No specific products found. Try different keywords or ask about:\n"
@@ -855,7 +1586,7 @@ class SnapdealRAGChatbot:
         
         response = []
         
-        for i, doc in enumerate(retrieved_docs[:5], 1):  # Limit to top 5
+        for i, doc in enumerate(retrieved_docs[:5], 1):
             text = doc['metadata'].get('text', '')
             score = doc.get('score', 0)
             
@@ -869,23 +1600,7 @@ class SnapdealRAGChatbot:
             if product_url and product_url.startswith('http'):
                 response.append(f"   🔗 {product_url}")
             
-            # Add freshness info
-            timestamp = doc['metadata'].get('timestamp', '')
-            if timestamp:
-                try:
-                    ts = datetime.fromisoformat(timestamp)
-                    age = datetime.now() - ts
-                    if age.seconds < 3600:
-                        freshness = f"{age.seconds//60}m ago"
-                    elif age.days == 0:
-                        freshness = f"{age.seconds//3600}h ago"
-                    else:
-                        freshness = f"{age.days}d ago"
-                    
-                    source = doc['metadata'].get('source', 'live')
-                    response.append(f"   📊 [{source} | {freshness}]\n")
-                except:
-                    response.append("")
+            response.append("")  # Empty line
         
         if not response:
             return ("No specific products found. Try different keywords or ask about:\n"
